@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum chain_status {
+  active
+  disabled
+}
+
+enum wallet_status {
+  active
+  paused
+  disabled
+}
+
+model chains {
+  chain_id     Int          @id
+  name         String
+  rpc_url      String
+  native_token String
+  status       chain_status @default(active)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  wallet_chains wallet_chain[]
+}
+
+model wallets {
+  id             String @id @default(uuid())
+  name           String @unique
+  public_address String @unique
+
+  encrypted_secret String
+  encrypted_iv     String
+  encryption_auth  String
+
+  status     wallet_status @default(active)
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  wallet_chains wallet_chain[]
+}
+
+model wallet_chain {
+  wallet_id String
+  chain_id  Int
+
+  wallet wallets @relation(fields: [wallet_id], references: [id])
+  chain  chains  @relation(fields: [chain_id], references: [chain_id])
+
+  created_at DateTime @default(now())
+
+  @@id([wallet_id, chain_id])
+  @@index([wallet_id])
+  @@index([chain_id])
+}

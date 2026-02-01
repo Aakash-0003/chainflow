@@ -1,0 +1,21 @@
+
+node_modules/
+npm-debug.log*
+
+.env
+.env.*
+!.env.example
+
+# --------------------
+# Prisma
+# --------------------
+prisma/migrations/*
+!prisma/migrations/.gitkeep
+
+# --------------------
+# Logs
+# --------------------
+logs/
+*.log
+
+

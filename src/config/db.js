@@ -1,0 +1,23 @@
+import pg from 'pg';
+import { config } from './env.js';
+const { Pool } = pg;
+
+const pool = new Pool({
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.user,
+    password: config.db.password,
+    database: config.db.database,
+    ssl: false
+});
+
+pool.on('connect', () => {
+    console.log('Connected to the database');
+});
+
+pool.on("error", (err) => {
+    console.error("Unexpected Postgres error", err);
+    process.exit(1);
+});
+
+export default pool;
