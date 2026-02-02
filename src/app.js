@@ -8,6 +8,7 @@ import errorHandler from './middlewares/errorHandler.js'
 
 import healthCheckRouter from './routes/healthCheck.route.js';
 import walletRouter from './routes/wallet.route.js';
+import transactionRouter from './routes/transaction.route.js';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(rateLimiter);
 //routes
 app.use('/v1/health', healthCheckRouter);
 app.use('/v1/wallet', walletRouter);
+app.use('/v1/transaction', transactionRouter);
 
 app.use(errorHandler);
 
