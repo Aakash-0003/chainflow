@@ -1,5 +1,5 @@
 import logger from "../config/logger.js"
-import { importWallet, getWalletByPublicAddress, updateWalletStatus } from "../services/wallet.services.js"
+import { importWallet, getWalletByPublicAddress, updateWalletStatus, enableChainsForWallet } from "../services/wallet.services.js"
 
 export async function getWalletController(req, res, next) {
     try {
@@ -24,13 +24,14 @@ export async function getWalletController(req, res, next) {
 export async function importWalletController(req, res, next) {
     try {
         // call wallet service with the req.body
-        const { name, publicAddress, privateKey } = req.body;
+        const { name, publicAddress, privateKey, chainIds } = req.body;
         logger.info(`Received request for wallet import for Request : ${req.requestId} : ${JSON.stringify(req.body)}`);
-        const result = await importWallet({ name, publicAddress, privateKey });
+        const result = await importWallet({ name, publicAddress, privateKey, chainIds });
         const response = {
             id: result.id,
             name: result.name,
             publicAddress: result.public_address,
+            chainIds: result.chainIds,
             status: result.status,
             createdAt: result.created_at,
             updatedAt: result.updated_at
@@ -60,6 +61,20 @@ export async function updateWalletController(req, res, next) {
         }
         logger.info(`COMPLETED : Update wallet status for address: ${publicAddress} ,Successfull :${JSON.stringify(response)}`)
         return res.status(201).send(response)
+    } catch (error) {
+        next(error)
+    }
+}
+
+export async function enableChainsController(req, res, next) {
+    try {
+        const { walletId } = req.params;
+        const { chainIds } = req.body;
+        logger.info(`INITIATED : enable chains for wallet : ${walletId}`)
+
+        const result = await enableChainsForWallet({ walletId, chainIds });
+        logger.info(`COMPLETED : Update wallet status for wallet: ${walletId} ,Successfull :${JSON.stringify(result)}`)
+        return res.status(201).send({ success: true, chains: result })
     } catch (error) {
         next(error)
     }
