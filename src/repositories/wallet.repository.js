@@ -6,8 +6,8 @@ export async function findWalletByAddress(publicAddress) {
     });
 }
 
-export async function createWallet(data) {
-    return prisma.wallets.create({
+export async function createWallet(prismaClient, data) {
+    return prismaClient.wallets.create({
         data,
     });
 }
