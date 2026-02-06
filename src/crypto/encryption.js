@@ -30,7 +30,7 @@ export function encryptSecret(data) {
 
 }
 
-export function decryptSecret({ ciphertext, iv, authTag }) {
+export function decryptSecret({ encryptSecret, iv, authTag }) {
     const decipher = crypto.createDecipheriv(
         ALGORITHM,
         ENCRYPTION_KEY,
@@ -39,7 +39,7 @@ export function decryptSecret({ ciphertext, iv, authTag }) {
 
     decipher.setAuthTag(Buffer.from(authTag, "hex"));
     const decrypted = Buffer.concat([
-        decipher.update(Buffer.from(ciphertext, "hex")),
+        decipher.update(Buffer.from(encryptSecret, "hex")),
         decipher.final(),
     ]);
 
