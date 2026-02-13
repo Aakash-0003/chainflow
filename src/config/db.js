@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { config } from './env.js';
+import logger from './logger.js';
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -12,11 +13,11 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-    console.log('Connected to the database');
+    logger.info('Connected to the database');
 });
 
 pool.on("error", (err) => {
-    console.error("Unexpected Postgres error", err);
+    logger.error("Unexpected Postgres error", err);
     process.exit(1);
 });
 

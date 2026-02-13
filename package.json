@@ -27,6 +27,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "bull": "^4.16.5",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "eslint-plugin-import": "^2.32.0",

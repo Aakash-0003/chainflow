@@ -14,8 +14,6 @@ export default function basicAuth(req, res, next) {
     const decoded = Buffer.from(base64, "base64").toString("utf-8");
 
     const [username, password] = decoded.split(":");
-    console.log("username : password", username, password)
-    console.log(config.basicAuth)
     if (
         username !== config.basicAuth.username ||
         password !== config.basicAuth.password
@@ -27,7 +25,6 @@ export default function basicAuth(req, res, next) {
         return res.status(403).json({ error: "Forbidden" });
     }
 
-    // attach identity
     req.auth = { type: "basic", username };
     logger.info("Authorization successfull!", {
         requestId: req.requestId,

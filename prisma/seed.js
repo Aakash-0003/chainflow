@@ -66,7 +66,6 @@ async function main() {
 
 main()
     .then(() => {
-        console.log("[PRISMA]Chain data seeded");
     })
     .catch((e) => {
         console.error("Seeding failed", e);

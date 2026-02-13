@@ -8,6 +8,7 @@ export const config = {
         password: process.env.DB_PASS,
         database: process.env.DB_NAME
     },
+    redisUrl: process.env.REDIS_URL,
     rpc: {
         amoy: process.env.AMOY_RPC_URL,
         sepolia: process.env.SEPOLIA_RPC_URL,

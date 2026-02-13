@@ -2,8 +2,9 @@ import { rateLimit } from 'express-rate-limit';
 import logger from '../config/logger.js'
 
 export default rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
+    //review this according to rpc limits later
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {

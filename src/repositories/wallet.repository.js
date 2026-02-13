@@ -18,7 +18,6 @@ export async function getWalletById(id) {
     });
 }
 
-
 export async function updateWalletStatus({ publicAddress, status }) {
     return prisma.wallets.update({
         where: { public_address: publicAddress },

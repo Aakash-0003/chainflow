@@ -18,6 +18,15 @@ enum wallet_status {
   disabled
 }
 
+enum transaction_status {
+  queued
+  processing
+  sent
+  mined
+  failed
+  errored
+}
+
 model chains {
   chain_id     Int          @id
   name         String
@@ -29,6 +38,7 @@ model chains {
   updated_at DateTime @updatedAt
 
   wallet_chains wallet_chain[]
+  transactions  transactions[]
 }
 
 model wallets {
@@ -45,18 +55,44 @@ model wallets {
   updated_at DateTime      @updatedAt
 
   wallet_chains wallet_chain[]
+  transactions  transactions[]
 }
 
 model wallet_chain {
   wallet_id String
   chain_id  Int
 
-  wallet wallets @relation(fields: [wallet_id], references: [id])
-  chain  chains  @relation(fields: [chain_id], references: [chain_id])
-
-  created_at DateTime @default(now())
+  wallet     wallets      @relation(fields: [wallet_id], references: [id])
+  chain      chains       @relation(fields: [chain_id], references: [chain_id])
+  status     chain_status @default(active)
+  created_at DateTime     @default(now())
 
   @@id([wallet_id, chain_id])
   @@index([wallet_id])
   @@index([chain_id])
+}
+
+model transactions {
+  id               String             @id @default(uuid())
+  transaction_hash String?
+  block_number     BigInt?
+  wallet_id        String
+  chain_id         Int
+  to_address       String
+  value            BigInt?
+  data             String?
+  nonce            BigInt?
+  // gas_limit BigInt?
+  // gas_price BigInt?        
+  // max_fee_per_gas BigInt?  
+  // max_priority_fee BigInt?
+  status           transaction_status @default(queued)
+  retry_count      Int                @default(0)
+
+  submitted_at DateTime?
+  confirmed_at DateTime?
+  created_at   DateTime  @default(now())
+
+  wallet wallets @relation(fields: [wallet_id], references: [id])
+  chain  chains  @relation(fields: [chain_id], references: [chain_id])
 }
