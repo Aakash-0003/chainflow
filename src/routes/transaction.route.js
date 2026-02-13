@@ -4,8 +4,6 @@ const router = express.Router();
 
 router.post('/send', sendTransactionController);
 
-// router.get('/:', getWalletController);
-
-router.patch('/:id/status', getTransactionStatus)
+router.get('/:id', getTransactionStatus)
 
 export default router;

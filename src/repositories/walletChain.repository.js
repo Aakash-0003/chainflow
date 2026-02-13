@@ -1,3 +1,4 @@
+import prisma from '../../prisma/prisma.js';
 
 export async function enableChains(prismaClient, { walletId, chainIds }) {
     const records = chainIds.map((chainId) => ({
@@ -21,4 +22,21 @@ export async function enableChains(prismaClient, { walletId, chainIds }) {
             chain_id: true,
         },
     });
+}
+
+export async function findWalletChain(walletId, chainId) {
+    const relation = await prisma.wallet_chain.findUnique({
+        where: {
+            wallet_id_chain_id: {
+                wallet_id: walletId,
+                chain_id: chainId,
+            }
+        },
+        include: {
+            wallet: true,
+            chain: true
+        }
+    });
+
+    return relation;
 }

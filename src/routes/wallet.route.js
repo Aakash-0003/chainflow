@@ -8,7 +8,7 @@ router.get('/:publicAddress', getWalletController);
 
 router.patch('/:publicAddress/status', updateWalletController)
 
-router.patch('/:walletId/enableChain', enableChainsController)
+router.patch('/:walletId/chains', enableChainsController)
 
 
 export default router;

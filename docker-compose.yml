@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7
+    container_name: redis-chainflow
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

@@ -1,33 +1,30 @@
-import logger from '../config/logger.js'
-import { sendTransaction } from '../services/transaction.service.js'
 
-export function sendTransactionController(req, res, next) {
+import logger from '../config/logger.js'
+import { sendTransaction, getTransactionStatusService } from '../services/transaction.service.js'
+
+export async function sendTransactionController(req, res, next) {
     try {
         logger.info(`INITIATED : Send transaction for request : ${req.requestId} : req : ${JSON.stringify(req.body)}`)
 
-        const result = sendTransaction(req.body);
+        const result = await sendTransaction(req.body);
 
-        const response = result
-        logger.info(`COMPLETED : Send transaction for request : ${req.requestId} : res : ${JSON.stringify(response)}`)
-
-        res.status(201).send(response);
-
+        logger.info(`COMPLETED : Send transaction for request : ${req.requestId} : res : ${JSON.stringify(result)}`)
+        res.status(201).json({ success: true, result });
     } catch (error) {
         next(error)
     }
 }
 
-export function getTransactionStatus(req, res, next) {
+export async function getTransactionStatus(req, res, next) {
     try {
-        logger.info(`INITIATED : Get transaction status for address : ${req.requestId} : req : ${JSON.stringify(req.body)}`)
+        const { id } = req.params;
+        logger.info(`Transaction status requested for transactionId: ${id}`);
 
-        const result = sendTransaction(req.body);
+        const result = await getTransactionStatusService(id);
 
-        const response = result
-
-        res.status(201).send(response);
-
+        logger.info(`Transaction status retrieved for transactionId: ${id} - Status: ${result.status}`);
+        return res.status(200).json(result);
     } catch (error) {
-        next(error)
+        next(error);
     }
 }
