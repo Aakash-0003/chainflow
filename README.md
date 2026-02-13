@@ -150,7 +150,7 @@ Chainflow is designed to evolve incrementally.
 - Observability stack (metrics, tracing,monitoring)
 
 📁 Detailed architectural roadmap and upgrade plan are documented in:
-[View Technical Documentation](./Technical%20Documentation)
+[View Technical Documentation](./Technical%20documentation)
 
 ### 🔜 Phase 2 — Reliability & Performance
 
