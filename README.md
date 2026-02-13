@@ -2,45 +2,74 @@
 
 **Distributed transaction flow engine for EVM chains**
 
-Chainflow is a reliability-focused Web3 backend that securely manages wallets and orchestrates transactions across multiple EVM chains using asynchronous queues, nonce-safe concurrency, and fault-tolerant workers.
+Chainflow V1 is a correctness-first Web3 backend infrastructure designed to provide reliable, deterministic blockchain transaction management across multiple chains. Unlike typical blockchain backends that prioritize scalability, Chainflow V1 establishes a solid foundation focused on correctness, safety, and observability.
 
-This repository currently contains the **foundation and Wallet Management module**.  
-Transaction execution, workers, and advanced reliability mechanisms are being added incrementally.
+### Core Capabilities
 
----
+Chainflow V1 provides the following foundational capabilities:
 
-## Why Chainflow?
-
-Most blockchain backends fail not because of smart contracts, but because of **poor transaction orchestration**:
-
-- nonce collisions
-- unreliable retries
-- unsafe key handling
-- blocking APIs
-
-Chainflow is designed to solve these problems by treating transaction execution as a **distributed systems problem**, not just a Web3 one.
+- **Encrypted Wallet Management**: Securely stores and manages blockchain wallets with encryption at rest
+- **Multi-Chain Support**: Enables individual wallets to operate across multiple blockchain networks
+- **Asynchronous Transaction Processing**: Accepts transaction requests and processes them reliably in the background
+- **Per-Chain Queue Architecture**: Maintains dedicated processing queues for each blockchain network
+- **Transaction Lifecycle Tracking**: Monitors and maintains the complete state of each transaction
+- **Crash-Safe Recovery**: Automatically recovers from system failures without losing transaction state
 
 ---
 
-## Core Principles
+#### What We Optimize For:
 
-- **Security-first**: encrypted wallet storage, no plaintext private keys at rest
-- **Asynchronous by design**: APIs enqueue work, workers execute it
-- **Correctness over speed**: wallet-scoped nonce management and locking
-- **Reliability-focused**: retries, state transitions, crash recovery
-- **Clean architecture**: clear separation of API, service, queue, and worker layers
+1. **Deterministic Behavior**: Every operation produces predictable, repeatable results
+2. **State Correctness**: System state remains accurate and consistent at all times
+3. **Clean Layering**: Clear separation of concerns with well-defined layer boundaries
+4. **Observability**: Complete visibility into system behavior and transaction states
+5. **Infrastructure Clarity**: Simple, understandable architecture that's easy to reason about
 
+#### What We Don't Optimize For (Yet):
+
+- **Scalability**: High-throughput transaction processing (planned for V2)
+- **Advanced Nonce Management**: Sophisticated nonce tracking and prediction
+- **Transaction Confirmations**: On-chain confirmation monitoring and finality tracking
+- **Automatic Retries**: Complex retry logic and failure recovery strategies
+
+This deliberate scoping allows V1 to establish a rock-solid foundation that can be built upon in future versions.
+
+---
+## Architecture Overview
+
+![Architecture Diagram](Technical%20documentation/ChainflowHighLevelArchitecture.png)
+
+The system follows a layered architecture to promote separation of concerns and ease of development. Requests flow sequentially through the layers, ensuring that each component handles a specific aspect of the operation. This design prevents tight coupling and allows for independent testing and scaling of individual layers.
+
+High-level flow:
+- **Client** → Initiates requests via HTTP.
+- **Express API Layer** → Handles incoming requests, validation, and response formatting.
+- **Service Layer** → Encapsulates business logic, including validations and transaction preparation.
+- **Database (Postgres via Prisma)** → Persists data using an ORM for type-safe interactions.
+- **Queue Layer (Bull + Redis)** → Manages job queuing with durability features.
+- **Worker Layer** → Executes queued jobs, interacting with blockchain RPCs.
+- **Blockchain RPC** → External interface for signing and broadcasting transactions.
+
+This unidirectional flow ensures that errors are propagated appropriately and that the system remains resilient to failures at any layer.
+
+## Sequence Diagrams for flows
+### Import wallet flow 
+![Import wallet flow Diagram](Technical%20documentation/ImportWallet.png)
+### Transaction Submission Flow (API → Queue)
+![transaction submission flow Diagram](Technical%20documentation/QueueWorkerTransactionProcessing.png)
+### Queue worker Processing Flow
+![Queue worker processing flow Diagram](Technical%20documentation/SendTransactionApiFlow.png)
 ---
 
 ## Current Features (v1 – Wallet Foundation)
 
 ### Wallet Management
 
+- Private keys are **never stored in plaintext**
 - Import EVM wallets securely
-- Encrypted private key storage
-- Public address derivation
-- Wallet lifecycle states (`active`, `paused`, `disabled`)
-- Wallet–Chain association via normalized schema
+- Keys are encrypted using **AES-GCM Encryption algorithm** .
+- Decryption happens **only in memory** during transaction signing
+- Design allows future migration to **AWS KMS / HSM** without API changes
 
 ### Database & Infrastructure
 
@@ -56,39 +85,86 @@ Chainflow is designed to solve these problems by treating transaction execution 
 - Layered design (routes → controllers → services → repositories)
 - Request validation & middleware pipeline
 
+### Execution Engine (v1)
+
+Chainflow V1 includes a deterministic transaction execution engine built on a queue + worker architecture.
+
+#### Per-Chain Queue Architecture
+
+- One **Bull queue per blockchain network**
+- `jobId = transactionId` (prevents duplicate execution)
+- Redis AOF persistence enabled
+- Concurrency = **1 per chain (V1)**
+
+This design ensures:
+
+- Deterministic transaction ordering  
+- No nonce conflicts  
+- Chain-level isolation  
+- Clean execution boundaries  
+
 ---
 
-## 🔐 Wallet Security Model
+## Crash-Safe Recovery Model
 
-- Private keys are **never stored in plaintext**
-- Keys are encrypted at rest using strong symmetric encryption
-- Decryption happens **only in memory** during transaction signing
-- Design allows future migration to **AWS KMS / HSM** without API changes
+On startup:
+
+- Any transaction in `processing` state is reset to `queued`
+- Workers resume execution safely
+- Ensures system remains consistent after restart
+
+This allows safe restarts without losing transaction intent.
 
 ---
 
-## 🛣️ Roadmap
+## Design principles:
 
-### 🔜 Phase 2 — Transaction Execution
+- PostgreSQL is the **single source of truth**
+- Redis is used only for asynchronous execution
+- All execution decisions are DB-driven
 
-- Transaction lifecycle & state machine
-- Per-chain queues
-- Worker-based execution
-- RPC abstraction layer
+## Future Vision
 
-### 🔜 Phase 3 — Reliability & Performance
+Chainflow is designed to evolve incrementally.
+
+### Execution Upgrades
+
+- Nonce Manager (per wallet)
+- Advanced Retry Classification
+- Failure Reason Tracking
+- Confirmation Polling
+- Gas Optimization Module
+
+### Feature Expansion
+
+- **Account Abstraction (ERC-4337)** for creating and utilizing Smart wallets
+- **Smart Wallet** APIs
+- Transaction Scheduler
+- Oracle Price Feed Integration for token prices
+
+### Scalability Enhancements
+
+- Concurrency > 1
+- Horizontal worker scaling
+- Distributed nonce service
+- Observability stack (metrics, tracing,monitoring)
+
+📁 Detailed architectural roadmap and upgrade plan are documented in:
+[View Technical Documentation](./Technical%20Documentation)
+
+### 🔜 Phase 2 — Reliability & Performance
 
 - Wallet-scoped nonce manager
 - Retry classification (retryable vs terminal failures)
 - Gas handling & optimizations
-- Concurrency tuning
+- Concurrency and workers scaling 
 
-### 🔜 Phase 4 — Advanced Features
+### 🔜 Phase 3 — Advanced Features
 
-- Scheduled / DCA transactions
+- Account abstraction implementation for Smart wallet support
+- Scheduled transactions
 - Webhooks & event streaming
 - Metrics & observability
-- KMS / HSM integration
 
 ---
 
@@ -97,7 +173,7 @@ Chainflow is designed to solve these problems by treating transaction execution 
 - **Node.js / Express**
 - **PostgreSQL**
 - **Prisma ORM**
-- **Redis / BullMQ** (queues)
+- **Redis / Bull** (queues)
 - **Ethers.js**
 - **Docker** (local development)
 
