@@ -27,72 +27,79 @@ enum transaction_status {
   errored
 }
 
-model chains {
-  chain_id     Int          @id
-  name         String
-  rpc_url      String
-  native_token String
-  status       chain_status @default(active)
+model Chain {
+  chainId     Int          @id @map("chain_id")
+  name        String
+  rpcUrl      String       @map("rpc_url")
+  nativeToken String       @map("native_token")
+  status      chain_status @default(active)
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  wallet_chains wallet_chain[]
-  transactions  transactions[]
+  wallet_chains WalletChain[]
+  transactions  Transaction[]
+
+  @@map("chains")
 }
 
-model wallets {
-  id             String @id @default(uuid())
-  name           String @unique
-  public_address String @unique
+model Wallet {
+  id            String @id @default(uuid())
+  name          String @unique
+  publicAddress String @unique @map("public_address")
 
-  encrypted_secret String
-  encrypted_iv     String
-  encryption_auth  String
+  encryptedSecret String @map("encrypted_secret")
+  encryptedIv     String @map("encrypted_iv")
+  encryptionAuth  String @map("encryption_auth")
 
-  status     wallet_status @default(active)
-  created_at DateTime      @default(now())
-  updated_at DateTime      @updatedAt
+  status    wallet_status @default(active)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
-  wallet_chains wallet_chain[]
-  transactions  transactions[]
+  wallet_chains WalletChain[]
+  transactions  Transaction[]
+
+  @@map("wallets")
 }
 
-model wallet_chain {
-  wallet_id String
-  chain_id  Int
+model WalletChain {
+  walletId String @map("wallet_id")
+  chainId  Int    @map("chain_id")
 
-  wallet     wallets      @relation(fields: [wallet_id], references: [id])
-  chain      chains       @relation(fields: [chain_id], references: [chain_id])
-  status     chain_status @default(active)
-  created_at DateTime     @default(now())
+  wallet    Wallet       @relation(fields: [walletId], references: [id])
+  chain     Chain        @relation(fields: [chainId], references: [chainId])
+  status    chain_status @default(active)
+  createdAt DateTime     @default(now()) @map("created_at")
 
-  @@id([wallet_id, chain_id])
-  @@index([wallet_id])
-  @@index([chain_id])
+  @@id([walletId, chainId])
+  @@index([walletId])
+  @@index([chainId])
+  @@map("wallet_chain")
 }
 
-model transactions {
-  id               String             @id @default(uuid())
-  transaction_hash String?
-  block_number     BigInt?
-  wallet_id        String
-  chain_id         Int
-  to_address       String
-  value            BigInt?
-  data             String?
-  nonce            BigInt?
+model Transaction {
+  id              String             @id @default(uuid())
+  transactionHash String?            @map("transaction_hash")
+  blockNumber     BigInt?            @map("block_number")
+  walletId        String             @map("wallet_id")
+  chainId         Int                @map("chain_id")
+  toAddress       String             @map("to_address")
+  value           BigInt?
+  data            String?
+  nonce           BigInt?
   // gas_limit BigInt?
   // gas_price BigInt?        
   // max_fee_per_gas BigInt?  
   // max_priority_fee BigInt?
-  status           transaction_status @default(queued)
-  retry_count      Int                @default(0)
+  status          transaction_status @default(queued)
+  retryCount      Int                @default(0) @map("retry_count")
 
-  submitted_at DateTime?
-  confirmed_at DateTime?
-  created_at   DateTime  @default(now())
+  submittedAt DateTime? @map("submitted_at")
+  confirmedAt DateTime? @map("confirmed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  wallet wallets @relation(fields: [wallet_id], references: [id])
-  chain  chains  @relation(fields: [chain_id], references: [chain_id])
+  wallet Wallet @relation(fields: [walletId], references: [id])
+  chain  Chain  @relation(fields: [chainId], references: [chainId])
+
+  @@map("transactions")
 }
