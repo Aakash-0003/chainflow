@@ -56,7 +56,7 @@ async function main() {
     ];
 
     for (const chain of chains) {
-        await prisma.chains.upsert({
+        await prisma.chain.upsert({
             where: { chain_id: chain.chain_id },
             update: chain,
             create: chain,
