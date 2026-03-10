@@ -1,5 +1,4 @@
-import * as walletRepo from "../repositories/wallet.repository.js";
-import * as walletChainRepo from "../repositories/walletChain.repository.js";
+import { walletRepository as walletRepo, walletChainRepository as walletChainRepo } from "../repositories/index.js";
 import { encryptPrivateKey } from "../crypto/encryption.js";
 import prisma from "../../prisma/prisma.js";
 
@@ -15,10 +14,10 @@ export async function importWallet({ name, publicAddress, privateKey, chainIds =
         // Create wallet
         const wallet = await walletRepo.createWallet(tx, {
             name,
-            public_address: publicAddress,
-            encrypted_secret: encrypted.encryptedPrivateKey,
-            encrypted_iv: encrypted.iv,
-            encryption_auth: encrypted.authTag,
+            publicAddress: publicAddress,
+            encryptedSecret: encrypted.encryptedPrivateKey,
+            encryptedIv: encrypted.iv,
+            encryptionAuth: encrypted.authTag,
         });
 
         if (chainIds.length > 0) {
@@ -27,18 +26,18 @@ export async function importWallet({ name, publicAddress, privateKey, chainIds =
                 chainIds,
             });
             const chainIds = walletChain.map(chain => {
-                return chain.chain_id;
+                return chain.chainId;
             })
             wallet.chainIds = chainIds
         }
         return {
             id: wallet.id,
             name: wallet.name,
-            publicAddress: wallet.public_address,
+            publicAddress: wallet.publicAddress,
             status: wallet.status,
             chainIds: wallet.chainIds || [],
-            createdAt: wallet.created_at,
-            updatedAt: wallet.updated_at,
+            createdAt: wallet.createdAt,
+            updatedAt: wallet.updatedAt,
         };
     });
 }
@@ -55,7 +54,7 @@ export async function getWalletByPublicAddress(publicAddress) {
 export async function enableChainsForWallet({ walletId, chainIds }) {
     const walletChain = await walletChainRepo.enableChains(prisma, { walletId, chainIds })
     const chains = walletChain.map(chain => {
-        return chain.chain_id;
+        return chain.chainId;
     })
     return chains
 }

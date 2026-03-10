@@ -12,10 +12,10 @@ export async function getWalletController(req, res, next) {
         }
         const response = {
             name: wallet.name,
-            publicAddress: wallet.public_address,
+            publicAddress: wallet.publicAddress,
             status: wallet.status,
-            createdAt: wallet.created_at,
-            updatedAt: wallet.updated_at
+            createdAt: wallet.createdAt,
+            updatedAt: wallet.updatedAt
         }
         logger.info(`COMPLETED : Get wallet for address : ${publicAddress} ,Successfull :${JSON.stringify(response)}`)
         return res.status(200).send(response)
@@ -47,10 +47,10 @@ export async function updateWalletController(req, res, next) {
         const result = await updateWalletStatus({ publicAddress, status });
         const response = {
             name: result.name,
-            publicAddress: result.public_address,
+            publicAddress: result.publicAddress,
             status: result.status,
-            createdAt: result.created_at,
-            updatedAt: result.updated_at
+            createdAt: result.createdAt,
+            updatedAt: result.updatedAt
         }
         logger.info(`COMPLETED : Update wallet status for address: ${publicAddress} ,Successfull :${JSON.stringify(response)}`)
         return res.status(200).json(response)
