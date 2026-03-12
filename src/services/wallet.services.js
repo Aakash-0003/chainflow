@@ -6,7 +6,7 @@ import prisma from "../../prisma/prisma.js";
 export async function importWallet({ name, publicAddress, privateKey, chainIds = [] }) {
     const existing = await walletRepo.findWalletByAddress(publicAddress);
     if (existing) {
-        throw new AppError("Wallet already exists", 400);
+        throw new AppError("Bad Request : Wallet already exists", 400);
     }
     const encrypted = encryptPrivateKey(privateKey);
 
@@ -15,7 +15,7 @@ export async function importWallet({ name, publicAddress, privateKey, chainIds =
         const wallet = await walletRepo.createWallet(tx, {
             name,
             publicAddress: publicAddress,
-            encryptedSecret: encrypted.encryptedPrivateKey,
+            encryptedSecret: encrypted.encryptedSecret,
             encryptedIv: encrypted.iv,
             encryptionAuth: encrypted.authTag,
         });
@@ -25,10 +25,10 @@ export async function importWallet({ name, publicAddress, privateKey, chainIds =
                 walletId: wallet.id,
                 chainIds,
             });
-            const chainIds = walletChain.map(chain => {
+            const enabledChainIds = walletChain.map(chain => {
                 return chain.chainId;
             })
-            wallet.chainIds = chainIds
+            wallet.chainIds = enabledChainIds
         }
         return {
             id: wallet.id,

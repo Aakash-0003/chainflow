@@ -37,8 +37,8 @@ class TransactionWorker {
                     throw new AppError('Wallet not found', 404);
                 }
             }
-            if (!wallet.isActive) {
-                throw new AppError('Wallet is inactive', 403);
+            if (wallet.status !== 'active') {
+                throw new AppError(`Wallet is inactive: ${wallet.id}`, 400);
             }
 
             const privateKey = decryptPrivateKey({
