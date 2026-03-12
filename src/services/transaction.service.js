@@ -4,60 +4,59 @@ import buildTransactionData from "../utils/buildTransactionData.js";
 import transactionQueue from "../queues/transactionQueue.js";
 import { transactionRepository as transactionRepo, walletChainRepository as walletChainRepo } from "../repositories/index.js";
 import { getWalletBalance } from "../utils/getWalletBalance.js";
+import AppError from "../errors/AppError.js";
 
-export async function sendTransaction(requestData) {
+export async function sendTransaction({ walletId, chainId, toAddress, value, functionSignature, args }) {
 
-    if (!requestData.walletId || !requestData.chainId || !requestData.toAddress) {
-        throw new Error('Missing required fields');
-    }
-    logger.info(`Received transaction request for walletId : ${requestData.walletId} on chainId : ${requestData.chainId} with toAddress : ${requestData.toAddress} and value : ${requestData.value || '0'}`)
 
-    const value = requestData.value ? ethers.parseEther(requestData.value) : 0n;
+    logger.info(`Received transaction request for walletId : ${walletId} on chainId : ${chainId} with toAddress : ${toAddress} and value : ${value || '0'}`)
+
+    const parsedValue = value ? ethers.parseEther(value) : 0n;
     const transactionRequest = {
-        toAddress: requestData.toAddress,
-        value: value,
-        walletId: requestData.walletId,
-        chainId: requestData.chainId,
+        toAddress: toAddress,
+        value: parsedValue,
+        walletId: walletId,
+        chainId: chainId,
     };
 
     //check if the wallet has active chain  and balance is sufficient
-    const walletChain = await walletChainRepo.findWalletChain(requestData.walletId, requestData.chainId)
+    const walletChain = await walletChainRepo.findWalletChain(walletId, chainId)
     if (!walletChain) {
-        throw new Error(`Wallet ${requestData.walletId} is not enabled for chain ${requestData.chainId}`);
+        throw new AppError(`Bad Request:Wallet ${walletId} is not enabled for chain ${chainId}`, 400);
     }
 
     const walletAddress = walletChain.wallet.publicAddress;
     const rpcUrl = walletChain.chain.rpcUrl;
     const balance = await getWalletBalance(walletAddress, rpcUrl);
     if (balance === null || balance === undefined) {
-        throw new Error(`Failed to retrieve balance for wallet ${requestData.walletId} on chain ${requestData.chainId}`);
+        throw new AppError(`Internal Server Error:Failed to retrieve balance for wallet ${walletId} on chain ${chainId}`, 500);
     }
     if (balance < value) {
-        throw new Error(`Insufficient balance in wallet ${requestData.walletId} for chain ${requestData.chainId}`);
+        throw new AppError(`Bad Request Insufficient balance in wallet ${walletId} for chain ${chainId}`, 400);
     }
 
     //check if its a transfer transaction  or a contract interaction
-    if (requestData.functionSignature && requestData.args) {
-        logger.info(`Contract interaction request received for address : ${requestData.toAddress} with function signature : ${requestData.functionSignature} and args : ${JSON.stringify(requestData.args)}`)
+    if (functionSignature && args) {
+        logger.info(`Contract interaction request received for address : ${toAddress} with function signature : ${functionSignature} and args : ${JSON.stringify(args)}`)
         transactionRequest.data = buildTransactionData({
-            functionSignature: requestData.functionSignature,
-            args: requestData.args
+            functionSignature: functionSignature,
+            args: args
         })
     } else {
-        logger.info(`Transfer transaction request received for address : ${requestData.toAddress} with value : ${requestData.value}`)
+        logger.info(`Transfer transaction request received for address : ${toAddress} with value : ${value}`)
         transactionRequest.data = '0x';
     }
 
     //build transactionobject to be added to db
     const dbResponse = await transactionRepo.insertTransaction(transactionRequest)
     if (!dbResponse) {
-        throw new Error(`Failed to insert transaction in database`);
+        throw new AppError(`Internal Server Error :Failed to insert transaction in database`, 500);
     }
 
     const transactionId = dbResponse.id
     const enqueueResult = await transactionQueue.enqueue(transactionRequest.chainId, transactionId)
     if (!enqueueResult) {
-        throw new Error(`Failed to enqueue transaction for processing`);
+        throw new Error(`Internal Server Error :Failed to enqueue transaction for processing`, 500);
     }
     return {
         "transactionId": transactionId,
@@ -69,14 +68,11 @@ export async function sendTransaction(requestData) {
 }
 
 export async function getTransactionStatusService(transactionId) {
-    if (!transactionId) {
-        throw new Error('Missing required field: transactionId');
-    }
     logger.info(`Received request to get transaction status for transactionId : ${transactionId}`)
 
     const transaction = await transactionRepo.findTransactionById(transactionId);
     if (!transaction) {
-        throw new Error(`Transaction with id ${transactionId} not found`);
+        throw new AppError(`Transaction with id ${transactionId} not found`, 404);
     }
 
     return {

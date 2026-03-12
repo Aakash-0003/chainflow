@@ -59,7 +59,6 @@ class WorkerManager {
 
         queue.on('error', (error) => {
             logger.error(`[Queue-${chainId}] Queue error:`, error.message);
-
         });
     }
 

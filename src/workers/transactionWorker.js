@@ -2,6 +2,7 @@ import { ethers, } from 'ethers';
 import { walletRepository as walletRepo, chainRepository as chainRepo, transactionRepository as transactionsRepo } from "../repositories/index.js";
 import { decryptPrivateKey } from '../crypto/encryption.js';
 import logger from '../config/logger.js';
+import AppError from "../errors/AppError.js"
 
 class TransactionWorker {
     async process(job) {
@@ -12,27 +13,32 @@ class TransactionWorker {
         try {
             const transaction = await transactionsRepo.findTransactionById(transactionId);
             if (!transaction) {
-                throw new Error(`Transaction not found: ${transactionId}`);
+                throw new AppError('Transaction not found', 404);
             }
 
             if (transaction.status !== 'queued') {
                 if (transaction.status === 'sent' || transaction.status === 'processing') {
                     return { skipped: true };
                 }
-                throw new Error(`Invalid transaction status: ${transaction.status}`);
+                throw new AppError(
+                    `Invalid transaction status: ${transaction.status}`,
+                    400
+                );
             }
 
             const updateResult = await transactionsRepo.updateTransactionStatus(transactionId, 'processing');
             if (!updateResult) {
-                throw new Error(`Failed to update transaction status to processing for ${transactionId}`);
+                throw new AppError(`Failed to update transaction status to processing for ${transactionId}`, 500);
             }
 
             const wallet = await walletRepo.getWalletById(transaction.walletId);
             if (!wallet) {
-                throw new Error(`Wallet not found: ${transaction.walletId}`);
+                if (!wallet) {
+                    throw new AppError('Wallet not found', 404);
+                }
             }
             if (wallet.status !== 'active') {
-                throw new Error(`Wallet is inactive: ${wallet.id}`);
+                throw new AppError(`Wallet is inactive: ${wallet.id}`, 400);
             }
 
             const privateKey = decryptPrivateKey({
@@ -40,31 +46,52 @@ class TransactionWorker {
                 iv: wallet.encryptedIv,
                 authTag: wallet.encryptionAuth,
             });
+            if (!privateKey) {
+                throw new AppError('Failed to decrypt wallet', 500, false);
+            }
+            try {
+                const chain = await chainRepo.getChain(chainId);
+                const provider = new ethers.JsonRpcProvider(chain.rpcUrl);
+                const signer = new ethers.Wallet(privateKey, provider);
+                const txRequest = {
+                    to: transaction.toAddress,
+                    value: BigInt(transaction.value),
+                    data: transaction.data || '0x',
+                };
+                logger.info(`[${chainId}] Sending transaction ${transactionId} to ${transaction.toAddress} with value ${transaction.value}`);
+                const txResponse = await signer.sendTransaction(txRequest);
 
-            const chain = await chainRepo.getChain(chainId);
-            const provider = new ethers.JsonRpcProvider(chain.rpcUrl);
-            const signer = new ethers.Wallet(privateKey, provider);
-            const txRequest = {
-                to: transaction.toAddress,
-                value: BigInt(transaction.value),
-                data: transaction.data || '0x',
-            };
-            logger.info(`[${chainId}] Sending transaction ${transactionId} to ${transaction.toAddress} with value ${transaction.value}`);
-            const txResponse = await signer.sendTransaction(txRequest);
+                await transactionsRepo.updateTransactionPostSent({
+                    id: transactionId,
+                    txHash: txResponse.hash,
+                    status: 'sent',
+                    submittedAt: new Date(),
+                    nonce: txResponse.nonce,
+                });
+                return {
+                    success: true,
+                    txHash: txResponse.hash,
+                    transactionId: transaction.id,
+                };
+            } catch (error) {
+                // Blockchain errors
+                if (error.message.includes('insufficient funds')) {
+                    throw new AppError('Insufficient funds', 400);
+                }
 
-            await transactionsRepo.updateTransactionPostSent({
-                id: transactionId,
-                txHash: txResponse.hash,
-                status: 'sent',
-                submittedAt: new Date(),
-                nonce: txResponse.nonce,
-            });
-            return {
-                success: true,
-                txHash: txResponse.hash,
-                transactionId: transaction.id,
-            };
-        } catch (error) {
+                if (error.message.includes('nonce too low')) {
+                    throw new AppError('Nonce conflict', 409);
+                }
+
+                throw new AppError(
+                    'Failed to send transaction',
+                    503,
+                    true,
+                    { originalError: error.message }
+                );
+            }
+        }
+        catch (error) {
             logger.error(`[${chainId}] Worker error for ${transactionId}:`, error.message);
 
             try {
@@ -74,6 +101,7 @@ class TransactionWorker {
             }
             throw error
         }
+
     }
 }
 
