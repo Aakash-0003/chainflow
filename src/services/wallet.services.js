@@ -1,13 +1,13 @@
 import * as walletRepo from "../repositories/wallet.repository.js";
 import * as walletChainRepo from "../repositories/walletChain.repository.js";
 import { encryptPrivateKey } from "../crypto/encryption.js";
+import AppError from "../errors/AppError.js";
 import prisma from "../../prisma/prisma.js";
 
 export async function importWallet({ name, publicAddress, privateKey, chainIds = [] }) {
     const existing = await walletRepo.findWalletByAddress(publicAddress);
-
     if (existing) {
-        throw new Error("Wallet already exists");
+        throw new AppError("Wallet already exists", 400);
     }
     const encrypted = encryptPrivateKey(privateKey);
 
@@ -16,7 +16,7 @@ export async function importWallet({ name, publicAddress, privateKey, chainIds =
         const wallet = await walletRepo.createWallet(tx, {
             name,
             public_address: publicAddress,
-            encrypted_secret: encrypted.encryptedPrivateKey,
+            encrypted_secret: encrypted.encryptedSecret,
             encrypted_iv: encrypted.iv,
             encryption_auth: encrypted.authTag,
         });

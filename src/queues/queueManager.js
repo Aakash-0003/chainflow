@@ -2,6 +2,7 @@ import Bull from "bull";
 import { config } from "../config/env.js"
 import { chains } from "../config/chains.js"
 import logger from "../config/logger.js";
+import AppError from "../errors/AppError.js"
 
 class QueueManager {
     constructor() {
@@ -30,7 +31,7 @@ class QueueManager {
         const queue = this.queues.get(chainId);
 
         if (!queue) {
-            throw new Error(`Queue not found for chain: ${chainId}`);
+            throw new AppError(`Queue not found for chain: ${chainId}`, 500);
         }
 
         const jobData = {

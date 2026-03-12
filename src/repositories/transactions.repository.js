@@ -45,7 +45,7 @@ export async function updateTransactionPostSent({ id, txHash, status, submittedA
 }
 
 export async function findTransactionByStatus(status) {
-    return prisma.transactions.findMany({
+    return prisma.transaction.findMany({
         where: { status: status },
     })
 }

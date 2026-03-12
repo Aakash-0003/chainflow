@@ -1,5 +1,5 @@
 import { rateLimit } from 'express-rate-limit';
-import logger from '../config/logger.js'
+import AppError from '../errors/AppError.js';
 
 export default rateLimit({
     //review this according to rpc limits later
@@ -7,14 +7,12 @@ export default rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: (req, res) => {
-        logger.warn("Rate limit exceeded", {
-            requestId: req.requestId,
-            ip: req.ip,
-        });
-        res.status(429).json({
-            error: "Too many requests",
-            requestId: req.requestId,
-        });
-    },
+    handler: (req, res, next) => {
+        try {
+            throw new AppError("Too many requests", 429);
+        } catch (error) {
+            next(error);
+        }
+    }
 });
+

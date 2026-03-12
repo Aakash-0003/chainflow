@@ -1,34 +1,33 @@
 import logger from "../config/logger.js";
-import { config } from "../config/env.js"
+import { config } from "../config/env.js";
+import AppError from "../errors/AppError.js";
 export default function basicAuth(req, res, next) {
-    const header = req.headers.authorization;
+    try {
+        const header = req.headers.authorization;
 
-    if (!header || !header.startsWith("Basic ")) {
-        logger.warn("Missing basic auth header", {
+        if (!header || !header.startsWith("Basic ")) {
+            throw new AppError("Authentication required", 401);
+        }
+
+        const base64 = header.split(" ")[1];
+        const decoded = Buffer.from(base64, "base64").toString("utf-8");
+
+        const [username, password] = decoded.split(":");
+        if (
+            username !== config.basicAuth.username ||
+            password !== config.basicAuth.password
+        ) {
+            throw new AppError("Invalid credentials", 403);
+        }
+
+        req.auth = { type: "basic", username };
+        next();
+    } catch (error) {
+        logger.error("Error in basicAuth middleware", {
             requestId: req.requestId,
+            message: error.message,
+            stack: error.stack,
         });
-        return res.status(401).json({ error: "Unauthorized" });
+        next(error);
     }
-
-    const base64 = header.split(" ")[1];
-    const decoded = Buffer.from(base64, "base64").toString("utf-8");
-
-    const [username, password] = decoded.split(":");
-    if (
-        username !== config.basicAuth.username ||
-        password !== config.basicAuth.password
-    ) {
-        logger.warn("Invalid basic auth credentials", {
-            requestId: req.requestId,
-            username,
-        });
-        return res.status(403).json({ error: "Forbidden" });
-    }
-
-    req.auth = { type: "basic", username };
-    logger.info("Authorization successfull!", {
-        requestId: req.requestId,
-        username,
-    });
-    next();
 }

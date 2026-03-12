@@ -1,13 +1,15 @@
 import logger from "../config/logger.js";
 
-export default function errorHandler(err, req, res, next) {
+export default function errorHandler(err, req, res) {
     logger.error("Unhandled middleware error", {
         requestId: req.requestId,
         message: err.message,
-        stack: err.stack,
+        statusCode: err.statusCode,
     });
 
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
+        status: err.status,
+        statusCode: err.statusCode,
         error: err.message,
         requestId: req.requestId,
     });
