@@ -2,7 +2,7 @@ import prisma from "../../prisma/prisma.js";
 
 export async function findWalletByAddress(publicAddress) {
     return prisma.wallet.findUnique({
-        where: { public_address: publicAddress },
+        where: { publicAddress },
     });
 }
 
@@ -20,7 +20,7 @@ export async function getWalletById(id) {
 
 export async function updateWalletStatus({ publicAddress, status }) {
     return prisma.wallet.update({
-        where: { public_address: publicAddress },
+        where: { publicAddress },
         data: { status }
     });
 }

@@ -2,8 +2,7 @@ import { ethers } from "ethers";
 import logger from "../config/logger.js";
 import buildTransactionData from "../utils/buildTransactionData.js";
 import transactionQueue from "../queues/transactionQueue.js";
-import * as transactionRepo from "../repositories/transactions.repository.js"
-import * as walletChainRepo from "../repositories/walletChain.repository.js";
+import { transactionRepository as transactionRepo, walletChainRepository as walletChainRepo } from "../repositories/index.js";
 import { getWalletBalance } from "../utils/getWalletBalance.js";
 import AppError from "../errors/AppError.js";
 
@@ -26,8 +25,8 @@ export async function sendTransaction({ walletId, chainId, toAddress, value, fun
         throw new AppError(`Bad Request:Wallet ${walletId} is not enabled for chain ${chainId}`, 400);
     }
 
-    const walletAddress = walletChain.wallet.public_address;
-    const rpcUrl = walletChain.chain.rpc_url;
+    const walletAddress = walletChain.wallet.publicAddress;
+    const rpcUrl = walletChain.chain.rpcUrl;
     const balance = await getWalletBalance(walletAddress, rpcUrl);
     if (balance === null || balance === undefined) {
         throw new AppError(`Internal Server Error:Failed to retrieve balance for wallet ${walletId} on chain ${chainId}`, 500);
@@ -62,9 +61,9 @@ export async function sendTransaction({ walletId, chainId, toAddress, value, fun
     return {
         "transactionId": transactionId,
         "status": dbResponse.status,
-        "walletId": dbResponse.wallet_id,
-        "chainId": dbResponse.chain_id,
-        "createdAt": dbResponse.created_at
+        "walletId": dbResponse.walletId,
+        "chainId": dbResponse.chainId,
+        "createdAt": dbResponse.createdAt
     }
 }
 
@@ -79,9 +78,9 @@ export async function getTransactionStatusService(transactionId) {
     return {
         "transactionId": transaction.id,
         "status": transaction.status,
-        "walletId": transaction.wallet_id,
-        "chainId": transaction.chain_id,
-        "createdAt": transaction.created_at,
-        "updatedAt": transaction.updated_at
+        "walletId": transaction.walletId,
+        "chainId": transaction.chainId,
+        "createdAt": transaction.createdAt,
+        "updatedAt": transaction.updatedAt
     }
 }

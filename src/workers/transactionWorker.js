@@ -1,7 +1,5 @@
 import { ethers, } from 'ethers';
-import * as walletRepo from "../repositories/wallet.repository.js";
-import * as chainRepo from "../repositories/chains.repository.js";
-import * as transactionsRepo from '../repositories/transactions.repository.js';
+import { walletRepository as walletRepo, chainRepository as chainRepo, transactionRepository as transactionsRepo } from "../repositories/index.js";
 import { decryptPrivateKey } from '../crypto/encryption.js';
 import logger from '../config/logger.js';
 import AppError from "../errors/AppError.js"
@@ -33,7 +31,7 @@ class TransactionWorker {
                 throw new AppError(`Failed to update transaction status to processing for ${transactionId}`, 500);
             }
 
-            const wallet = await walletRepo.getWalletById(transaction.wallet_id);
+            const wallet = await walletRepo.getWalletById(transaction.walletId);
             if (!wallet) {
                 if (!wallet) {
                     throw new AppError('Wallet not found', 404);
@@ -44,23 +42,23 @@ class TransactionWorker {
             }
 
             const privateKey = decryptPrivateKey({
-                encryptedSecret: wallet.encrypted_secret,
-                iv: wallet.encrypted_iv,
-                authTag: wallet.encryption_auth,
+                encryptedSecret: wallet.encryptedSecret,
+                iv: wallet.encryptedIv,
+                authTag: wallet.encryptionAuth,
             });
             if (!privateKey) {
                 throw new AppError('Failed to decrypt wallet', 500, false);
             }
             try {
                 const chain = await chainRepo.getChain(chainId);
-                const provider = new ethers.JsonRpcProvider(chain.rpc_url);
+                const provider = new ethers.JsonRpcProvider(chain.rpcUrl);
                 const signer = new ethers.Wallet(privateKey, provider);
                 const txRequest = {
-                    to: transaction.to_address,
+                    to: transaction.toAddress,
                     value: BigInt(transaction.value),
                     data: transaction.data || '0x',
                 };
-                logger.info(`[${chainId}] Sending transaction ${transactionId} to ${transaction.to_address} with value ${transaction.value}`);
+                logger.info(`[${chainId}] Sending transaction ${transactionId} to ${transaction.toAddress} with value ${transaction.value}`);
                 const txResponse = await signer.sendTransaction(txRequest);
 
                 await transactionsRepo.updateTransactionPostSent({
@@ -103,6 +101,7 @@ class TransactionWorker {
             }
             throw error
         }
+
     }
 }
 
