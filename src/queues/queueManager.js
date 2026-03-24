@@ -12,9 +12,17 @@ class QueueManager {
 
     initialize() {
         chains.forEach(chain => {
-            const queueName = `${chain.chainId}-transactions`;
+            const transactionQueueName = `${chain.chainId}-transactions`;
+            const statusQueueName = `${chain.chainId}-status`;
 
-            const queue = new Bull(queueName, {
+            const transactionQueue = new Bull(transactionQueueName, {
+                redis: config.redisUrl,
+                defaultJobOptions: {
+                    removeOnComplete: 100,
+                    removeOnFail: 500,
+                },
+            });
+            const statusQueue = new Bull(statusQueueName, {
                 redis: config.redisUrl,
                 defaultJobOptions: {
                     removeOnComplete: 100,
@@ -22,16 +30,19 @@ class QueueManager {
                 },
             });
 
-            this.queues.set(chain.chainId, queue);
-            logger.info(`Queue initialized: ${queueName}`);
+            this.queues.set(chain.chainId, {
+                transactionQueue,
+                statusQueue,
+            });
+            logger.info(`Queues initialized: ${transactionQueue.name} | ${statusQueue.name}`);
         });
     }
 
     async enqueueTransaction(chainId, transactionId) {
-        const queue = this.queues.get(chainId);
+        const queues = this.queues.get(chainId);
 
-        if (!queue) {
-            throw new AppError(`Queue not found for chain: ${chainId}`, 500);
+        if (!queues) {
+            throw new AppError(`Queues not found for chain: ${chainId}`, 500);
         }
 
         const jobData = {
@@ -40,8 +51,35 @@ class QueueManager {
             enqueuedAt: new Date().toISOString(),
         };
 
-        const job = await queue.add(jobData, {
-            jobId: transactionId,
+        const job = await queues.transactionQueue.add(jobData, {
+            jobId: `txn-${transactionId}`,
+        });
+
+        logger.info(`Job enqueued: ${job.id} on ${chainId}`);
+
+        return job.id;
+    }
+
+    async enqueueStatus(chainId, transactionId, repeatInterval) {
+        const queues = this.queues.get(chainId);
+
+        if (!queues) {
+            throw new AppError(`Queues not found for chain: ${chainId}`, 500);
+        }
+
+        const jobData = {
+            transactionId,
+            chainId,
+            enqueuedAt: new Date().toISOString(),
+        };
+
+        const job = await queues.statusQueue.add(jobData, {
+            jobId: `status-${transactionId}`,
+            repeat: {
+                every: repeatInterval,
+                limit: 30,
+                endDate: Date.now() + 10 * 60 * 1000 // 10 minutes
+            },
         });
 
         logger.info(`Job enqueued: ${job.id} on ${chainId}`);

@@ -1,4 +1,5 @@
 import transactionWorker from './transactionWorker.js';
+import statusWorker from './statusWorker.js';
 import queueManager from '../queues/queueManager.js';
 import logger from '../config/logger.js';
 
@@ -16,31 +17,38 @@ class WorkerManager {
     }
 
     startWorker(chainId) {
-        if (this.workers.has(chainId)) return;
-
-        const queue = queueManager.getQueue(chainId);
-        if (!queue) {
+        const queues = queueManager.getQueue(chainId);
+        if (!queues) {
             logger.error(`Queue not found for chain: ${chainId}`);
             return;
         }
+        const { transactionQueue, statusQueue } = queues;
+        if (this.workers.has(chainId)) return;
 
         const concurrency = this.getConcurrency(chainId);
 
-        queue.process(concurrency, async (job) => {
-            logger.info(`Worker for ${chainId} started processing job ${job.id}`);
+        transactionQueue.process(concurrency, async (job) => {
+            logger.info(`Transaction Worker for ${chainId} started processing job ${job.id}`);
             const result = await transactionWorker.process(job);
             return result;
         });
 
-        this.setupEventListeners(queue, chainId);
+        statusQueue.process(3, async (job) => {
+            logger.info(`Status Worker for ${chainId} started processing job ${job.id}`);
+            await statusWorker.process(job);
+        });
+
+        this.setupEventListeners(transactionQueue, chainId);
+        this.setupEventListeners(transactionQueue, chainId);
 
         this.workers.set(chainId, {
-            queue,
+            transactionQueue,
+            statusQueue,
             concurrency,
             startedAt: new Date(),
         });
 
-        logger.info(`Worker started for ${chainId} (concurrency: ${concurrency})`);
+        logger.info(`Workers started for ${chainId} (concurrency: ${concurrency})`);
     }
 
     getConcurrency() {
