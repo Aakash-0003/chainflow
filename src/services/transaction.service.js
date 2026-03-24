@@ -78,6 +78,7 @@ export async function getTransactionStatusService(transactionId) {
     return {
         "transactionId": transaction.id,
         "status": transaction.status,
+        "transactionHash": transaction.transactionHash,
         "walletId": transaction.walletId,
         "chainId": transaction.chainId,
         "createdAt": transaction.createdAt,

@@ -1,6 +1,7 @@
 import { ethers, } from 'ethers';
 import { walletRepository as walletRepo, chainRepository as chainRepo, transactionRepository as transactionsRepo } from "../repositories/index.js";
 import { decryptPrivateKey } from '../crypto/encryption.js';
+import statusQueue from '../queues/statusQueue.js';
 import logger from '../config/logger.js';
 import AppError from "../errors/AppError.js"
 
@@ -63,15 +64,19 @@ class TransactionWorker {
 
                 await transactionsRepo.updateTransactionPostSent({
                     id: transactionId,
-                    txHash: txResponse.hash,
+                    transactionHash: txResponse.hash,
                     status: 'sent',
                     submittedAt: new Date(),
                     nonce: txResponse.nonce,
                 });
+                const statusQueueJob = statusQueue.enqueue(chainId, transactionId)
+                if (!statusQueueJob) {
+                    logger.info(`Failed to enqueue transaction for status polling!`)
+                }
                 return {
                     success: true,
                     txHash: txResponse.hash,
-                    transactionId: transaction.id,
+                    transactionId: transaction.id
                 };
             } catch (error) {
                 // Blockchain errors

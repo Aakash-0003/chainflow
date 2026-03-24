@@ -17,6 +17,31 @@ export async function updateTransactionStatus(id, status) {
     })
 }
 
+export async function updateTransactionStatusMined({ id, status, blockNumber, confirmedAt }) {
+    return prisma.transaction.update({
+        where: {
+            id: id
+        },
+        data: {
+            status,
+            blockNumber,
+            confirmedAt
+        }
+    })
+}
+
+export async function updateTransactionStatusFailed({ id, status, confirmedAt }) {
+    return prisma.transaction.update({
+        where: {
+            id: id
+        },
+        data: {
+            status,
+            confirmedAt
+        }
+    })
+}
+
 export async function insertTransaction(data) {
 
     return prisma.transaction.create({
@@ -30,16 +55,16 @@ export async function insertTransaction(data) {
     })
 }
 
-export async function updateTransactionPostSent({ id, txHash, status, submittedAt, nonce }) {
+export async function updateTransactionPostSent({ id, transactionHash, status, submittedAt, nonce }) {
     return prisma.transaction.update({
         where: {
             id: id
         },
         data: {
-            transactionHash: txHash,
-            status: status,
-            submittedAt: submittedAt,
-            nonce: nonce
+            transactionHash,
+            status,
+            submittedAt,
+            nonce
         }
     })
 }
