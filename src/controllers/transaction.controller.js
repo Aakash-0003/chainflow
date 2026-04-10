@@ -6,9 +6,6 @@ export async function sendTransactionController(req, res, next) {
     try {
         logger.info(`INITIATED : Send transaction for request : ${req.requestId} : req : ${JSON.stringify(req.body)}`)
         const { walletId, chainId, toAddress, value, functionSignature, args } = req.body;
-        if (!walletId || !chainId || !toAddress) {
-            throw new AppError("Bad Request: required key value missing", 400)
-        }
         const result = await sendTransaction({ walletId, chainId, toAddress, value, functionSignature, args });
 
         logger.info(`COMPLETED : Send transaction for request : ${req.requestId} : res : ${JSON.stringify(result)}`)
@@ -21,9 +18,6 @@ export async function sendTransactionController(req, res, next) {
 export async function getTransactionStatus(req, res, next) {
     try {
         const { id } = req.params;
-        if (!id) {
-            throw new AppError("Bad Request: required key value missing", 400)
-        }
         logger.info(`Transaction status requested for transactionId: ${id}`);
 
         const result = await getTransactionStatusService(id);

@@ -31,11 +31,12 @@ export async function sendTransaction({ walletId, chainId, toAddress, value, fun
     if (balance === null || balance === undefined) {
         throw new AppError(`Internal Server Error:Failed to retrieve balance for wallet ${walletId} on chain ${chainId}`, 500);
     }
-    if (balance < value) {
-        throw new AppError(`Bad Request Insufficient balance in wallet ${walletId} for chain ${chainId}`, 400);
+
+    const balanceInWei = ethers.parseEther(balance);
+    if (balanceInWei < parsedValue) {
+        throw new AppError(`Bad Request: Insufficient balance in wallet ${walletId} for chain ${chainId}. Required: ${value} ETH, Available: ${balance} ETH`, 400);
     }
 
-    //check if its a transfer transaction  or a contract interaction
     if (functionSignature && args) {
         logger.info(`Contract interaction request received for address : ${toAddress} with function signature : ${functionSignature} and args : ${JSON.stringify(args)}`)
         transactionRequest.data = buildTransactionData({
