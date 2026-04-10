@@ -39,7 +39,7 @@ class WorkerManager {
         });
 
         this.setupEventListeners(transactionQueue, chainId);
-        this.setupEventListeners(transactionQueue, chainId);
+        this.setupEventListeners(statusQueue, chainId);
 
         this.workers.set(chainId, {
             transactionQueue,
@@ -57,8 +57,8 @@ class WorkerManager {
     }
 
     setupEventListeners(queue, chainId) {
-        queue.on('completed', (job, result) => {
-            logger.info(`[Queue-${chainId}] Job ${job.id} completed:  Transaction hash: ${result.txHash}`);
+        queue.on('completed', (job) => {
+            logger.info(`[Queue-${chainId}] Job ${job.id} completed`);
         });
 
         queue.on('failed', (job, err) => {
@@ -66,7 +66,7 @@ class WorkerManager {
         });
 
         queue.on('error', (error) => {
-            logger.error(`[Queue-${chainId}] Queue error:`, error.message);
+            logger.error(`[Queue-${chainId}] Queue error: ${error?.message || error}`);
         });
     }
 

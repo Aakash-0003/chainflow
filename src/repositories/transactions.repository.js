@@ -42,6 +42,17 @@ export async function updateTransactionStatusFailed({ id, status, confirmedAt })
     })
 }
 
+export async function updateTransactionPostFailure({ id, status, retryCount, confirmedAt = null }) {
+    return prisma.transaction.update({
+        where: { id: id },
+        data: {
+            status,
+            retryCount,
+            confirmedAt
+        }
+    })
+}
+
 export async function insertTransaction(data) {
 
     return prisma.transaction.create({
@@ -66,6 +77,13 @@ export async function updateTransactionPostSent({ id, transactionHash, status, s
             submittedAt,
             nonce
         }
+    })
+}
+
+export async function updateTransactionNonce(id, nonce) {
+    return prisma.transaction.update({
+        where: { id: id },
+        data: { nonce: nonce }
     })
 }
 

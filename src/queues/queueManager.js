@@ -1,16 +1,23 @@
 import Bull from "bull";
 import { config } from "../config/env.js"
-import { chains } from "../config/chains.js"
 import logger from "../config/logger.js";
 import AppError from "../errors/AppError.js"
+import cacheService from "../services/cache.service.js"
 
 class QueueManager {
     constructor() {
         this.queues = new Map();
-        this.initialize();
     }
 
     initialize() {
+        // Get chains from cache (initialized during server startup)
+        const chains = cacheService.get('chains:all') || [];
+
+        if (chains.length === 0) {
+            logger.warn('No chains found in cache during queueManager initialization');
+            return;
+        }
+
         chains.forEach(chain => {
             const transactionQueueName = `${chain.chainId}-transactions`;
             const statusQueueName = `${chain.chainId}-status`;
@@ -38,7 +45,7 @@ class QueueManager {
         });
     }
 
-    async enqueueTransaction(chainId, transactionId) {
+    async enqueueTransaction(chainId, transactionId, options = {}) {
         const queues = this.queues.get(chainId);
 
         if (!queues) {
@@ -53,6 +60,7 @@ class QueueManager {
 
         const job = await queues.transactionQueue.add(jobData, {
             jobId: `txn-${transactionId}`,
+            delay: options.delay || 0,
         });
 
         logger.info(`Job enqueued: ${job.id} on ${chainId}`);
