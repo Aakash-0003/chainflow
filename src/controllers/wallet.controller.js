@@ -5,9 +5,6 @@ import AppError from "../errors/AppError.js";
 export async function getWalletController(req, res, next) {
     try {
         const { publicAddress } = req.params;
-        if (!publicAddress) {
-            throw new AppError("Public address is required", 400);
-        }
         logger.info(`INITIATED : Get wallet for address : ${publicAddress}`)
 
         const wallet = await getWalletByPublicAddress(publicAddress);
@@ -17,6 +14,7 @@ export async function getWalletController(req, res, next) {
         const response = {
             name: wallet.name,
             publicAddress: wallet.publicAddress,
+            walletId: wallet.id,
             status: wallet.status,
             createdAt: wallet.createdAt,
             updatedAt: wallet.updatedAt
@@ -31,9 +29,6 @@ export async function getWalletController(req, res, next) {
 export async function importWalletController(req, res, next) {
     try {
         const { name, publicAddress, privateKey, chainIds } = req.body;
-        if (!name || !publicAddress || !privateKey || !chainIds) {
-            throw new AppError("Missing required fields: name, publicAddress, privateKey, chainIds", 400);
-        }
         logger.info(`Received request for wallet import for Request : ${req.requestId} : ${JSON.stringify(req.body)}`);
 
         const response = await importWallet({ name, publicAddress, privateKey, chainIds });
@@ -49,9 +44,6 @@ export async function updateWalletController(req, res, next) {
     try {
         const { publicAddress } = req.params;
         const { status } = req.body;
-        if (!publicAddress || !status) {
-            throw new AppError("Missing required fields: publicAddress, status", 400);
-        }
         logger.info(`INITIATED : Update wallet status for address : ${publicAddress}`)
 
         const result = await updateWalletStatus({ publicAddress, status });
@@ -73,9 +65,6 @@ export async function enableChainsController(req, res, next) {
     try {
         const { walletId } = req.params;
         const { chainIds } = req.body;
-        if (!walletId || !chainIds) {
-            throw new AppError("Missing required fields: walletId, chainIds", 400);
-        }
         logger.info(`INITIATED : enable chains for wallet : ${walletId}`)
 
         const result = await enableChainsForWallet({ walletId, chainIds });

@@ -1,15 +1,11 @@
-import { ethers, } from 'ethers';
-import { walletRepository as walletRepo, chainRepository as chainRepo, transactionRepository as transactionsRepo, chainRepository } from "../repositories/index.js";
-import { decryptPrivateKey } from '../crypto/encryption.js';
-import statusQueue from '../queues/statusQueue.js';
+import { ethers } from 'ethers';
+import { chainRepository as chainRepo, transactionRepository as transactionsRepo } from "../repositories/index.js";
 import logger from '../config/logger.js';
-import AppError from "../errors/AppError.js"
-import queueManager from '../queues/queueManager.js';
 
 class StatusWorker {
     async process(job) {
         const { transactionId, chainId } = job.data;
-        const { statusQueue } = queueManager.getQueue(chainId);
+
         const tx = await transactionsRepo.findTransactionById(transactionId);
         if (!tx || !tx.transactionHash) return;
 
@@ -33,7 +29,7 @@ class StatusWorker {
                     confirmedAt: new Date(),
                 });
 
-                await statusQueue.removeRepeatableByKey(job.opts.repeat.key);
+                await job.queue.removeRepeatableByKey(job.opts.repeat.key);
                 logger.info(`[${chainId}] Tx mined: ${transactionId}`);
             } else {
                 await transactionsRepo.updateTransactionStatusFailed({
@@ -42,11 +38,9 @@ class StatusWorker {
                     confirmedAt: new Date(),
                 });
 
-                await statusQueue.removeRepeatableByKey(job.opts.repeat.key);
+                await job.queue.removeRepeatableByKey(job.opts.repeat.key);
                 logger.info(`[${chainId}] Tx reverted: ${transactionId}`);
             }
-            await statusQueue.removeRepeatableByKey(job.opts.repeat.key);
-
         }
         catch (error) {
             logger.error(`[${chainId}] Status worker error: ${error}`);

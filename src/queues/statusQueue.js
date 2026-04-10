@@ -1,8 +1,14 @@
 import queueManager from "../queues/queueManager.js";
-import { chains } from "../config/chains.js";
+import { getChain } from "../repositories/chains.repository.js";
+
 class StatusQueue {
     async enqueue(chainId, transactionId) {
-        const chain = chains.find(c => c.chainId === chainId);
+        // Use repository — has cache-aside so it falls back to DB if TTL has expired
+        const chain = await getChain(chainId);
+
+        if (!chain) {
+            throw new Error(`Chain ${chainId} not found`);
+        }
 
         const jobId = await queueManager.enqueueStatus(
             chain.chainId,
