@@ -4,10 +4,7 @@
   "type": "module",
   "description": "A Multi-Chain Transaction Orchestrator (TAAS) that manages encrypted wallets, prioritized transaction queues,",
   "main": "src/server.js",
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
-  "scripts": {
+"scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "node --env-file=.env.test --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js tests/e2e/lifecycle.test.js",

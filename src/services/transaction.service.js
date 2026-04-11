@@ -57,7 +57,7 @@ export async function sendTransaction({ walletId, chainId, toAddress, value, fun
     const transactionId = dbResponse.id
     const enqueueResult = await transactionQueue.enqueue(transactionRequest.chainId, transactionId)
     if (!enqueueResult) {
-        throw new Error(`Internal Server Error :Failed to enqueue transaction for processing`, 500);
+        throw new AppError(`Internal Server Error :Failed to enqueue transaction for processing`, 500);
     }
     return {
         "transactionId": transactionId,

@@ -28,11 +28,12 @@ enum transaction_status {
 }
 
 model Chain {
-  chainId     Int          @id @map("chain_id")
-  name        String
-  rpcUrl      String       @map("rpc_url")
-  nativeToken String       @map("native_token")
-  status      chain_status @default(active)
+  chainId         Int          @id @map("chain_id")
+  name            String
+  rpcUrl          String       @map("rpc_url")
+  nativeToken     String       @map("native_token")
+  pollingInterval Int          @default(10000) @map("polling_interval")
+  status          chain_status @default(active)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
