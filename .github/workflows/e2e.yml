@@ -1,0 +1,68 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Fast validation tests (no blockchain) ─────────────────────────────────
+  validate:
+    name: Validation Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run validation tests (no live blockchain)
+        run: npm run test:fast
+        # test:fast lists files explicitly — no lifecycle (blockchain) tests
+        env:
+          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
+          TEST_AUTH_USERNAME: ${{ secrets.TEST_AUTH_USERNAME }}
+          TEST_AUTH_PASSWORD: ${{ secrets.TEST_AUTH_PASSWORD }}
+          TEST_PUBLIC_ADDRESS: ${{ secrets.TEST_PUBLIC_ADDRESS }}
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_CHAIN_IDS: ${{ secrets.TEST_CHAIN_IDS }}
+          TEST_PRIMARY_CHAIN_ID: ${{ secrets.TEST_PRIMARY_CHAIN_ID }}
+          TEST_CONTRACT_ADDRESS: ${{ secrets.TEST_CONTRACT_ADDRESS }}
+          TEST_FUNCTION_SIGNATURE: ${{ secrets.TEST_FUNCTION_SIGNATURE }}
+          TEST_FUNCTION_ARGS: ${{ secrets.TEST_FUNCTION_ARGS }}
+          TEST_TRANSFER_TO: ${{ secrets.TEST_TRANSFER_TO }}
+          TEST_TRANSFER_VALUE: ${{ secrets.TEST_TRANSFER_VALUE }}
+          TEST_SKIP_LIVE: 'true'
+
+  # ── Full E2E tests with real blockchain (runs on push to main only) ────────
+  e2e-live:
+    name: Live E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run full E2E tests (live blockchain)
+        run: npm test
+        env:
+          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
+          TEST_AUTH_USERNAME: ${{ secrets.TEST_AUTH_USERNAME }}
+          TEST_AUTH_PASSWORD: ${{ secrets.TEST_AUTH_PASSWORD }}
+          TEST_PUBLIC_ADDRESS: ${{ secrets.TEST_PUBLIC_ADDRESS }}
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_CHAIN_IDS: ${{ secrets.TEST_CHAIN_IDS }}
+          TEST_PRIMARY_CHAIN_ID: ${{ secrets.TEST_PRIMARY_CHAIN_ID }}
+          TEST_CONTRACT_ADDRESS: ${{ secrets.TEST_CONTRACT_ADDRESS }}
+          TEST_FUNCTION_SIGNATURE: ${{ secrets.TEST_FUNCTION_SIGNATURE }}
+          TEST_FUNCTION_ARGS: ${{ secrets.TEST_FUNCTION_ARGS }}
+          TEST_TRANSFER_TO: ${{ secrets.TEST_TRANSFER_TO }}
+          TEST_TRANSFER_VALUE: ${{ secrets.TEST_TRANSFER_VALUE }}
+          TEST_SKIP_LIVE: 'false'
