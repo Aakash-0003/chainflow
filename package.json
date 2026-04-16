@@ -7,8 +7,8 @@
 "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node --env-file=.env.test --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js tests/e2e/lifecycle.test.js",
-    "test:fast": "TEST_SKIP_LIVE=true node --env-file=.env.test --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js",
+    "test": "node --env-file=.env.test --test-concurrency=1 --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js tests/e2e/lifecycle.test.js",
+    "test:fast": "TEST_SKIP_LIVE=true node --env-file=.env.test --test-concurrency=1 --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js",
     "test:wallet": "node --env-file=.env.test --test tests/e2e/wallet.test.js",
     "test:transaction": "node --env-file=.env.test --test tests/e2e/transaction.test.js",
     "test:lifecycle": "node --env-file=.env.test --test tests/e2e/lifecycle.test.js",
