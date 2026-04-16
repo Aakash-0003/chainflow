@@ -49,35 +49,30 @@ jobs:
 
       - name: Create app .env
         run: |
-          cat <<EOF > .env
-          PORT=3000
-          DATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test
-          REDIS_URL=redis://localhost:6379
-          AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
-          AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
-          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
-          EOF
+          printf 'PORT=3000\nDATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test\nREDIS_URL=redis://localhost:6379\nAUTH_USERNAME=%s\nAUTH_PASSWORD=%s\nENCRYPTION_KEY=%s\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.ENCRYPTION_KEY }}" > .env
 
       - name: Create .env.test
         run: |
-          cat <<EOF > .env.test
-          TEST_BASE_URL=http://localhost:3000
-          TEST_AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
-          TEST_AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
-          TEST_PUBLIC_ADDRESS=${{ secrets.TEST_PUBLIC_ADDRESS }}
-          TEST_PRIVATE_KEY=${{ secrets.TEST_PRIVATE_KEY }}
-          TEST_CHAIN_IDS=${{ secrets.TEST_CHAIN_IDS }}
-          TEST_PRIMARY_CHAIN_ID=${{ secrets.TEST_PRIMARY_CHAIN_ID }}
-          TEST_CONTRACT_ADDRESS=${{ secrets.TEST_CONTRACT_ADDRESS }}
-          TEST_FUNCTION_SIGNATURE=${{ secrets.TEST_FUNCTION_SIGNATURE }}
-          TEST_FUNCTION_ARGS=${{ secrets.TEST_FUNCTION_ARGS }}
-          TEST_TRANSFER_TO=${{ secrets.TEST_TRANSFER_TO }}
-          TEST_TRANSFER_VALUE=${{ secrets.TEST_TRANSFER_VALUE }}
-          TEST_SKIP_LIVE=true
-          EOF
+          printf 'TEST_BASE_URL=http://localhost:3000\nTEST_AUTH_USERNAME=%s\nTEST_AUTH_PASSWORD=%s\nTEST_PUBLIC_ADDRESS=%s\nTEST_PRIVATE_KEY=%s\nTEST_CHAIN_IDS=%s\nTEST_PRIMARY_CHAIN_ID=%s\nTEST_CONTRACT_ADDRESS=%s\nTEST_FUNCTION_SIGNATURE=%s\nTEST_FUNCTION_ARGS=%s\nTEST_TRANSFER_TO=%s\nTEST_TRANSFER_VALUE=%s\nTEST_SKIP_LIVE=true\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.TEST_PUBLIC_ADDRESS }}" \
+            "${{ secrets.TEST_PRIVATE_KEY }}" \
+            "${{ secrets.TEST_CHAIN_IDS }}" \
+            "${{ secrets.TEST_PRIMARY_CHAIN_ID }}" \
+            "${{ secrets.TEST_CONTRACT_ADDRESS }}" \
+            "${{ secrets.TEST_FUNCTION_SIGNATURE }}" \
+            "${{ secrets.TEST_FUNCTION_ARGS }}" \
+            "${{ secrets.TEST_TRANSFER_TO }}" \
+            "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
 
       - name: Run migrations
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Seed chains
         run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
@@ -139,35 +134,30 @@ jobs:
 
       - name: Create app .env
         run: |
-          cat <<EOF > .env
-          PORT=3000
-          DATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test
-          REDIS_URL=redis://localhost:6379
-          AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
-          AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
-          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
-          EOF
+          printf 'PORT=3000\nDATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test\nREDIS_URL=redis://localhost:6379\nAUTH_USERNAME=%s\nAUTH_PASSWORD=%s\nENCRYPTION_KEY=%s\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.ENCRYPTION_KEY }}" > .env
 
       - name: Create .env.test
         run: |
-          cat <<EOF > .env.test
-          TEST_BASE_URL=http://localhost:3000
-          TEST_AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
-          TEST_AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
-          TEST_PUBLIC_ADDRESS=${{ secrets.TEST_PUBLIC_ADDRESS }}
-          TEST_PRIVATE_KEY=${{ secrets.TEST_PRIVATE_KEY }}
-          TEST_CHAIN_IDS=${{ secrets.TEST_CHAIN_IDS }}
-          TEST_PRIMARY_CHAIN_ID=${{ secrets.TEST_PRIMARY_CHAIN_ID }}
-          TEST_CONTRACT_ADDRESS=${{ secrets.TEST_CONTRACT_ADDRESS }}
-          TEST_FUNCTION_SIGNATURE=${{ secrets.TEST_FUNCTION_SIGNATURE }}
-          TEST_FUNCTION_ARGS=${{ secrets.TEST_FUNCTION_ARGS }}
-          TEST_TRANSFER_TO=${{ secrets.TEST_TRANSFER_TO }}
-          TEST_TRANSFER_VALUE=${{ secrets.TEST_TRANSFER_VALUE }}
-          TEST_SKIP_LIVE=false
-          EOF
+          printf 'TEST_BASE_URL=http://localhost:3000\nTEST_AUTH_USERNAME=%s\nTEST_AUTH_PASSWORD=%s\nTEST_PUBLIC_ADDRESS=%s\nTEST_PRIVATE_KEY=%s\nTEST_CHAIN_IDS=%s\nTEST_PRIMARY_CHAIN_ID=%s\nTEST_CONTRACT_ADDRESS=%s\nTEST_FUNCTION_SIGNATURE=%s\nTEST_FUNCTION_ARGS=%s\nTEST_TRANSFER_TO=%s\nTEST_TRANSFER_VALUE=%s\nTEST_SKIP_LIVE=false\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.TEST_PUBLIC_ADDRESS }}" \
+            "${{ secrets.TEST_PRIVATE_KEY }}" \
+            "${{ secrets.TEST_CHAIN_IDS }}" \
+            "${{ secrets.TEST_PRIMARY_CHAIN_ID }}" \
+            "${{ secrets.TEST_CONTRACT_ADDRESS }}" \
+            "${{ secrets.TEST_FUNCTION_SIGNATURE }}" \
+            "${{ secrets.TEST_FUNCTION_ARGS }}" \
+            "${{ secrets.TEST_TRANSFER_TO }}" \
+            "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
 
       - name: Run migrations
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Seed chains
         run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
