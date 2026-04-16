@@ -75,7 +75,9 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Seed chains
-        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
+        run: node prisma/seed.js
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Start app
         run: node src/server.js &
@@ -160,7 +162,9 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Seed chains
-        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
+        run: node prisma/seed.js
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
       - name: Start app
         run: node src/server.js &

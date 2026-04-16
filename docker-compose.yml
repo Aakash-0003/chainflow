@@ -1,15 +1,52 @@
 version: "3.9"
 
 services:
+  app:
+    build: .
+    container_name: chainflow-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh -c "npx prisma db push --skip-generate && node prisma/seed.js && node src/server.js"
+
+  postgres:
+    image: postgres:15
+    container_name: chainflow-postgres
+    env_file:
+      - .env.docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chainflow -d chainflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7
-    container_name: redis-chainflow
+    container_name: chainflow-redis
     ports:
       - "6379:6379"
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
+  postgres-data:
   redis-data:

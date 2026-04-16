@@ -5,8 +5,9 @@
   "description": "A Multi-Chain Transaction Orchestrator (TAAS) that manages encrypted wallets, prioritized transaction queues,",
   "main": "src/server.js",
 "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "seed": "node prisma/seed.js",
     "test": "node --env-file=.env.test --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js tests/e2e/lifecycle.test.js",
     "test:fast": "TEST_SKIP_LIVE=true node --env-file=.env.test --test tests/e2e/health.test.js tests/e2e/wallet.test.js tests/e2e/transaction.test.js",
     "test:wallet": "node --env-file=.env.test --test tests/e2e/wallet.test.js",

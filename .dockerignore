@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+logs/
+*.log
+prisma/migrations/*
+.git/
+.gitignore
+.husky/
+tests/
+*.md
+docker-compose.yml
+.dockerignore
