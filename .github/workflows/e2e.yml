@@ -1,0 +1,177 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Fast validation tests (no blockchain) ─────────────────────────────────
+  validate:
+    name: Validation Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: chainflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create app .env
+        run: |
+          printf 'PORT=3000\nDATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test\nREDIS_URL=redis://localhost:6379\nAUTH_USERNAME=%s\nAUTH_PASSWORD=%s\nENCRYPTION_KEY=%s\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.ENCRYPTION_KEY }}" > .env
+
+      - name: Create .env.test
+        run: |
+          printf 'TEST_BASE_URL=http://localhost:3000\nTEST_AUTH_USERNAME=%s\nTEST_AUTH_PASSWORD=%s\nTEST_PUBLIC_ADDRESS=%s\nTEST_PRIVATE_KEY=%s\nTEST_CHAIN_IDS=%s\nTEST_PRIMARY_CHAIN_ID=%s\nTEST_CONTRACT_ADDRESS=%s\nTEST_FUNCTION_SIGNATURE=%s\nTEST_FUNCTION_ARGS=%s\nTEST_TRANSFER_TO=%s\nTEST_TRANSFER_VALUE=%s\nTEST_SKIP_LIVE=true\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.TEST_PUBLIC_ADDRESS }}" \
+            "${{ secrets.TEST_PRIVATE_KEY }}" \
+            "${{ secrets.TEST_CHAIN_IDS }}" \
+            "${{ secrets.TEST_PRIMARY_CHAIN_ID }}" \
+            "${{ secrets.TEST_CONTRACT_ADDRESS }}" \
+            "${{ secrets.TEST_FUNCTION_SIGNATURE }}" \
+            "${{ secrets.TEST_FUNCTION_ARGS }}" \
+            "${{ secrets.TEST_TRANSFER_TO }}" \
+            "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
+
+      - name: Push schema to database
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
+
+      - name: Seed chains
+        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
+
+      - name: Start app
+        run: node src/server.js &
+
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..20}; do
+            curl -s http://localhost:3000/health && break
+            echo "Waiting for app... ($i)"
+            sleep 3
+          done
+
+      - name: Run validation tests
+        run: npm run test:fast
+
+  # ── Full E2E tests with real blockchain (runs on push to main only) ────────
+  e2e-live:
+    name: Live E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: chainflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create app .env
+        run: |
+          printf 'PORT=3000\nDATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test\nREDIS_URL=redis://localhost:6379\nAUTH_USERNAME=%s\nAUTH_PASSWORD=%s\nENCRYPTION_KEY=%s\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.ENCRYPTION_KEY }}" > .env
+
+      - name: Create .env.test
+        run: |
+          printf 'TEST_BASE_URL=http://localhost:3000\nTEST_AUTH_USERNAME=%s\nTEST_AUTH_PASSWORD=%s\nTEST_PUBLIC_ADDRESS=%s\nTEST_PRIVATE_KEY=%s\nTEST_CHAIN_IDS=%s\nTEST_PRIMARY_CHAIN_ID=%s\nTEST_CONTRACT_ADDRESS=%s\nTEST_FUNCTION_SIGNATURE=%s\nTEST_FUNCTION_ARGS=%s\nTEST_TRANSFER_TO=%s\nTEST_TRANSFER_VALUE=%s\nTEST_SKIP_LIVE=false\n' \
+            "${{ secrets.TEST_AUTH_USERNAME }}" \
+            "${{ secrets.TEST_AUTH_PASSWORD }}" \
+            "${{ secrets.TEST_PUBLIC_ADDRESS }}" \
+            "${{ secrets.TEST_PRIVATE_KEY }}" \
+            "${{ secrets.TEST_CHAIN_IDS }}" \
+            "${{ secrets.TEST_PRIMARY_CHAIN_ID }}" \
+            "${{ secrets.TEST_CONTRACT_ADDRESS }}" \
+            "${{ secrets.TEST_FUNCTION_SIGNATURE }}" \
+            "${{ secrets.TEST_FUNCTION_ARGS }}" \
+            "${{ secrets.TEST_TRANSFER_TO }}" \
+            "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
+
+      - name: Push schema to database
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
+
+      - name: Seed chains
+        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
+
+      - name: Start app
+        run: node src/server.js &
+
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..20}; do
+            curl -s http://localhost:3000/health && break
+            echo "Waiting for app... ($i)"
+            sleep 3
+          done
+
+      - name: Run full E2E tests
+        run: npm test
