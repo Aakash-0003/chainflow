@@ -72,6 +72,7 @@ export async function pollUntilSettled(transactionId) {
 
 /**
  * Fetches walletId for the configured test wallet.
+ * Imports the wallet first if it doesn't exist yet.
  * Call in before() hooks so multiple describe blocks can share it.
  */
 export async function resolveWalletId() {
@@ -79,7 +80,21 @@ export async function resolveWalletId() {
         'GET',
         `/v1/wallet/${config.wallet.publicAddress}`
     );
-    return data?.result?.walletId ?? null;
+    if (data?.result?.walletId) return data.result.walletId;
+
+    // Wallet doesn't exist yet — import it
+    await apiRequest('POST', '/v1/wallet/import', {
+        name: config.wallet.name,
+        publicAddress: config.wallet.publicAddress,
+        privateKey: config.wallet.privateKey,
+        chainIds: config.chainIds,
+    });
+
+    const { data: imported } = await apiRequest(
+        'GET',
+        `/v1/wallet/${config.wallet.publicAddress}`
+    );
+    return imported?.result?.walletId ?? null;
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
