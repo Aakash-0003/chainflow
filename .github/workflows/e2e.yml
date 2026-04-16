@@ -69,8 +69,8 @@ jobs:
             "${{ secrets.TEST_TRANSFER_TO }}" \
             "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
 
-      - name: Run migrations
-        run: npx prisma migrate deploy
+      - name: Push schema to database
+        run: npx prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
@@ -154,8 +154,8 @@ jobs:
             "${{ secrets.TEST_TRANSFER_TO }}" \
             "${{ secrets.TEST_TRANSFER_VALUE }}" > .env.test
 
-      - name: Run migrations
-        run: npx prisma migrate deploy
+      - name: Push schema to database
+        run: npx prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/chainflow_test
 
