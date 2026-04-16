@@ -80,10 +80,10 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Seed chains
-        run: psql postgresql://test:test@localhost:5432/chainflow_test -f prisma/seed.sql
+        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
 
       - name: Start app
-        run: node server.js &
+        run: node src/server.js &
 
       - name: Wait for app to be ready
         run: |
@@ -170,10 +170,10 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Seed chains
-        run: psql postgresql://test:test@localhost:5432/chainflow_test -f prisma/seed.sql
+        run: PGPASSWORD=test psql -h localhost -U test -d chainflow_test -f prisma/seed.sql
 
       - name: Start app
-        run: node server.js &
+        run: node src/server.js &
 
       - name: Wait for app to be ready
         run: |
