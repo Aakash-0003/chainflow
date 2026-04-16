@@ -11,58 +11,177 @@ jobs:
   validate:
     name: Validation Tests
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: chainflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      - name: Run validation tests (no live blockchain)
+
+      - name: Create app .env
+        run: |
+          cat <<EOF > .env
+          PORT=3000
+          DATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test
+          REDIS_URL=redis://localhost:6379
+          AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
+          AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          EOF
+
+      - name: Create .env.test
+        run: |
+          cat <<EOF > .env.test
+          TEST_BASE_URL=http://localhost:3000
+          TEST_AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
+          TEST_AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
+          TEST_PUBLIC_ADDRESS=${{ secrets.TEST_PUBLIC_ADDRESS }}
+          TEST_PRIVATE_KEY=${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_CHAIN_IDS=${{ secrets.TEST_CHAIN_IDS }}
+          TEST_PRIMARY_CHAIN_ID=${{ secrets.TEST_PRIMARY_CHAIN_ID }}
+          TEST_CONTRACT_ADDRESS=${{ secrets.TEST_CONTRACT_ADDRESS }}
+          TEST_FUNCTION_SIGNATURE=${{ secrets.TEST_FUNCTION_SIGNATURE }}
+          TEST_FUNCTION_ARGS=${{ secrets.TEST_FUNCTION_ARGS }}
+          TEST_TRANSFER_TO=${{ secrets.TEST_TRANSFER_TO }}
+          TEST_TRANSFER_VALUE=${{ secrets.TEST_TRANSFER_VALUE }}
+          TEST_SKIP_LIVE=true
+          EOF
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed chains
+        run: psql postgresql://test:test@localhost:5432/chainflow_test -f prisma/seed.sql
+
+      - name: Start app
+        run: node server.js &
+
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..20}; do
+            curl -s http://localhost:3000/health && break
+            echo "Waiting for app... ($i)"
+            sleep 3
+          done
+
+      - name: Run validation tests
         run: npm run test:fast
-        # test:fast lists files explicitly — no lifecycle (blockchain) tests
-        env:
-          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
-          TEST_AUTH_USERNAME: ${{ secrets.TEST_AUTH_USERNAME }}
-          TEST_AUTH_PASSWORD: ${{ secrets.TEST_AUTH_PASSWORD }}
-          TEST_PUBLIC_ADDRESS: ${{ secrets.TEST_PUBLIC_ADDRESS }}
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-          TEST_CHAIN_IDS: ${{ secrets.TEST_CHAIN_IDS }}
-          TEST_PRIMARY_CHAIN_ID: ${{ secrets.TEST_PRIMARY_CHAIN_ID }}
-          TEST_CONTRACT_ADDRESS: ${{ secrets.TEST_CONTRACT_ADDRESS }}
-          TEST_FUNCTION_SIGNATURE: ${{ secrets.TEST_FUNCTION_SIGNATURE }}
-          TEST_FUNCTION_ARGS: ${{ secrets.TEST_FUNCTION_ARGS }}
-          TEST_TRANSFER_TO: ${{ secrets.TEST_TRANSFER_TO }}
-          TEST_TRANSFER_VALUE: ${{ secrets.TEST_TRANSFER_VALUE }}
-          TEST_SKIP_LIVE: 'true'
 
   # ── Full E2E tests with real blockchain (runs on push to main only) ────────
   e2e-live:
     name: Live E2E Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: chainflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      - name: Run full E2E tests (live blockchain)
+
+      - name: Create app .env
+        run: |
+          cat <<EOF > .env
+          PORT=3000
+          DATABASE_URL=postgresql://test:test@localhost:5432/chainflow_test
+          REDIS_URL=redis://localhost:6379
+          AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
+          AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          EOF
+
+      - name: Create .env.test
+        run: |
+          cat <<EOF > .env.test
+          TEST_BASE_URL=http://localhost:3000
+          TEST_AUTH_USERNAME=${{ secrets.TEST_AUTH_USERNAME }}
+          TEST_AUTH_PASSWORD=${{ secrets.TEST_AUTH_PASSWORD }}
+          TEST_PUBLIC_ADDRESS=${{ secrets.TEST_PUBLIC_ADDRESS }}
+          TEST_PRIVATE_KEY=${{ secrets.TEST_PRIVATE_KEY }}
+          TEST_CHAIN_IDS=${{ secrets.TEST_CHAIN_IDS }}
+          TEST_PRIMARY_CHAIN_ID=${{ secrets.TEST_PRIMARY_CHAIN_ID }}
+          TEST_CONTRACT_ADDRESS=${{ secrets.TEST_CONTRACT_ADDRESS }}
+          TEST_FUNCTION_SIGNATURE=${{ secrets.TEST_FUNCTION_SIGNATURE }}
+          TEST_FUNCTION_ARGS=${{ secrets.TEST_FUNCTION_ARGS }}
+          TEST_TRANSFER_TO=${{ secrets.TEST_TRANSFER_TO }}
+          TEST_TRANSFER_VALUE=${{ secrets.TEST_TRANSFER_VALUE }}
+          TEST_SKIP_LIVE=false
+          EOF
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed chains
+        run: psql postgresql://test:test@localhost:5432/chainflow_test -f prisma/seed.sql
+
+      - name: Start app
+        run: node server.js &
+
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..20}; do
+            curl -s http://localhost:3000/health && break
+            echo "Waiting for app... ($i)"
+            sleep 3
+          done
+
+      - name: Run full E2E tests
         run: npm test
-        env:
-          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
-          TEST_AUTH_USERNAME: ${{ secrets.TEST_AUTH_USERNAME }}
-          TEST_AUTH_PASSWORD: ${{ secrets.TEST_AUTH_PASSWORD }}
-          TEST_PUBLIC_ADDRESS: ${{ secrets.TEST_PUBLIC_ADDRESS }}
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-          TEST_CHAIN_IDS: ${{ secrets.TEST_CHAIN_IDS }}
-          TEST_PRIMARY_CHAIN_ID: ${{ secrets.TEST_PRIMARY_CHAIN_ID }}
-          TEST_CONTRACT_ADDRESS: ${{ secrets.TEST_CONTRACT_ADDRESS }}
-          TEST_FUNCTION_SIGNATURE: ${{ secrets.TEST_FUNCTION_SIGNATURE }}
-          TEST_FUNCTION_ARGS: ${{ secrets.TEST_FUNCTION_ARGS }}
-          TEST_TRANSFER_TO: ${{ secrets.TEST_TRANSFER_TO }}
-          TEST_TRANSFER_VALUE: ${{ secrets.TEST_TRANSFER_VALUE }}
-          TEST_SKIP_LIVE: 'false'
